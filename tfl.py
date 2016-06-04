@@ -1,15 +1,9 @@
 import requests
 from lxml import html
-from os import environ
 from models import Payment, Journey
 from util import text_at_xpath, element_at, text_to_cost
 from datetime import datetime
 from collections import OrderedDict
-
-config = {}
-for key in ('TFL_USERNAME', 'TFL_PASSWORD'):
-    config[key] = environ[key]
-
 
 class TflDataAccess():
 	LOGIN_ENDPOINT 				= "https://account.tfl.gov.uk/Login"
@@ -29,7 +23,6 @@ class TflDataAccess():
 		self.mondo_card_id = None
 
 		self._login()
-		self._find_mondo_card()
 
 	# Public Methods
 	def has_incomplete_journeys(self):
@@ -93,6 +86,8 @@ class TflDataAccess():
 		error = element_at(tree.xpath('//div[@class="field-validation-error"]'), 0)
 		if error is not None:
 		    raise ValueError(error.text_content().strip())
+
+		self._find_mondo_card()
 
 	def _find_mondo_card(self):
 		result = self.session_requests.get(self.MYCARDS_ENDPOINT, headers = dict(referer = self.BASE_URL))
