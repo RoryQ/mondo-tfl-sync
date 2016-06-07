@@ -9,7 +9,7 @@ app = Flask(__name__)
 client_id = environ['MONDO_CLIENT_ID']
 client_secret = environ['MONDO_CLIENT_SECRET']
 redirect_uri = environ['MONDO_REDIRECT_URI']
-secret_key = environ['SECRET_KEY']
+secret_key = environ['FLASK_SECRET_KEY']
 
 app.secret_key = secret_key
 
@@ -34,10 +34,10 @@ def oauth():
     state = request.args.get('state', '')
 
     if state != session['state_token']:
-        print("state: {} different to session state {}".format(state, session['state_token']))
+        app.logger.warning("state: {} different to session state {}".format(state, session['state_token']))
         return "Something bad happened!"
 
-    print("auth_code: {}".format(auth_code))
+    app.logger.debug("auth_code: {}".format(auth_code))
 
     access_token, refresh_token = exchange_authorization_code_for_access_token(
         client_id=client_id,
@@ -46,8 +46,8 @@ def oauth():
         redirect_uri=redirect_uri
         )
 
-    print("Success!")
-    print("access_token: {}".format(access_token))
-    print("refresh_token: {}".format(refresh_token))
+    app.logger.debug("Success!")
+    app.logger.debug("access_token: {}".format(access_token))
+    app.logger.debug("refresh_token: {}".format(refresh_token))
 
     return "Success!!"
