@@ -1,2 +1,3 @@
 lxml==3.6.0
 requests==2.10.0
+-e git://github.com/RoryQ/mondo-python.git#egg=mondo-python

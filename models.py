@@ -10,8 +10,8 @@ class Payment():
         self.capped = capped
         
     def __repr__(self):
-        return "Payment(cost: {0}, date: {1}, warning: {2}, autocompleted: {3}, "\
-               "capped: {4},\njourneys: {5})".format(self.cost, self.date, self.warning, 
+        return "Payment(cost: {}, date: {}, warning: {}, autocompleted: {}, "\
+               "capped: {},\njourneys: {})".format(self.cost, self.date, self.warning, 
                     self.autocompleted, self.capped, self.journeys)
 
 class Journey():
@@ -24,6 +24,6 @@ class Journey():
         self.notes = notes
         
     def __repr__(self):
-        return "Journey(station_from: {0}, station_to: {1}, time: {2}, "\
-               "fare: {3}, cost: {4}, notes: {5})".format(self.station_from, self.station_to, 
+        return "Journey(station_from: {}, station_to: {}, time: {}, "\
+               "fare: {}, cost: {}, notes: {})".format(self.station_from, self.station_to, 
                     self.time, self.fare, self.cost, self.notes)
