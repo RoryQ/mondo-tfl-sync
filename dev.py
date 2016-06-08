@@ -33,7 +33,7 @@ def login():
         return redirect(auth_url)
     return """
     <form action"" method="post">
-        <p><input type=text name=login_key>
+        <p><input type=password name=login_key>
         <p><input type=submit value=Login>
     </form>
     """
