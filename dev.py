@@ -10,6 +10,7 @@ client_id = environ['MONDO_CLIENT_ID']
 client_secret = environ['MONDO_CLIENT_SECRET']
 redirect_uri = environ['MONDO_REDIRECT_URI']
 secret_key = environ['FLASK_SECRET_KEY']
+login_key = environ['LOGIN_KEY']
 
 app.secret_key = secret_key
 
@@ -17,16 +18,25 @@ app.secret_key = secret_key
 def hello_world():
     return "Hello"
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    state_token = generate_state_token()
-    session['state_token'] = state_token
-    auth_url = generate_mondo_auth_url(
-        client_id=client_id,
-        redirect_uri=redirect_uri,
-        state_token=state_token
-        )
-    return redirect(auth_url)
+    if request.method == 'POST':
+        if request.form['login_key'] != login_key:
+            return "Not valid"
+        state_token = generate_state_token()
+        session['state_token'] = state_token
+        auth_url = generate_mondo_auth_url(
+            client_id=client_id,
+            redirect_uri=redirect_uri,
+            state_token=state_token
+            )
+        return redirect(auth_url)
+    return """
+    <form action"" method="post">
+        <p><input type=text name=login_key>
+        <p><input type=submit value=Login>
+    </form>
+    """
 
 @app.route('/oauth', methods=['GET'])
 def oauth():
