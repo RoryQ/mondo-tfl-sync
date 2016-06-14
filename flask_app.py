@@ -4,7 +4,7 @@ from mondo.authorization import (generate_state_token,
                                  generate_mondo_auth_url,
                                  exchange_authorization_code_for_access_token)
 from flask import Flask, request, session, redirect
-from collections import namedtuple
+import logging
 
 app = Flask(__name__)
 
@@ -17,6 +17,14 @@ redirect_uri = base_uri + "/oauth"
 webhook_uri = base_uri + "/webhook"
 
 app.secret_key = secret_key
+
+
+@app.before_first_request
+def setup_logging():
+    if not app.debug:
+        # In production mode, add log handler to sys.stderr.
+        app.logger.addHandler(logging.StreamHandler())
+        app.logger.setLevel(logging.INFO)
 
 
 @app.route('/')
@@ -54,14 +62,13 @@ def oauth():
                            .format(state, session['state_token']))
         return "Something bad happened!"
 
-    access_token, refresh_token = exchange_authorization_code_for_access_token(
+    access = exchange_authorization_code_for_access_token(
         client_id=client_id,
         client_secret=client_secret,
         authorization_code=auth_code,
         redirect_uri=redirect_uri)
 
-    app.logger.info(access_token)
-    app.logger.info(refresh_token)
+    app.logger.info(access)
 
     return "Success!!"
 
