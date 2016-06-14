@@ -1,12 +1,20 @@
-lxml==3.6.0
-requests==2.10.0
--e git://github.com/RoryQ/mondo-python.git#egg=mondo-python
+aiohttp==0.21.6
+astroid==1.4.6
+chardet==2.3.0
 click==6.6
+colorama==0.3.7
 Flask==0.11
 gunicorn==19.6.0
 itsdangerous==0.24
 Jinja2==2.8
+lazy-object-proxy==1.2.2
+lxml==3.6.0
 MarkupSafe==0.23
+-e git://github.com/RoryQ/mondo-python.git@27fabe29d5b8b5802c570af90c868b953a55151e#egg=mondo_python
+pep8==1.7.0
+pylint==1.5.6
 python-dateutil==2.5.2
+requests==2.10.0
 six==1.10.0
 Werkzeug==0.11.10
+wrapt==1.10.8
