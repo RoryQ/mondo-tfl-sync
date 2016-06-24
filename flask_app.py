@@ -14,6 +14,8 @@ client_secret = environ['MONDO_CLIENT_SECRET']
 base_uri = environ['BASE_URI']
 secret_key = environ['FLASK_SECRET_KEY']
 login_key = environ['LOGIN_KEY']
+tfl_username = environ['TFL_USERNAME']
+tfl_password = environ['TFL_PASSWORD']
 redirect_uri = base_uri + "/oauth"
 webhook_uri = base_uri + "/webhook"
 

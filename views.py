@@ -1,15 +1,17 @@
-import datetime
+from datetime import datetime, timedelta
 from flask_app import (app, login_key, redirect_uri, client_id, client_secret,
                        webhook_uri, db)
 from flask import request, session, redirect
 import json
 from mondo import MondoClient
-from contextlib import suppress
+from mondo.exceptions import MondoApiException
 from mondo.authorization import (generate_state_token,
                                  generate_mondo_auth_url,
-                                 exchange_authorization_code_for_access_token)
-from models import MondoAccount, MondoToken
+                                 exchange_authorization_code_for_access_token,
+                                 refresh_access_token)
+from db_models import MondoAccount, MondoToken
 from sqlalchemy_util import get_or_create
+from matcher import is_tfl, update_old_transactions_with_journeys
 
 
 @app.route('/')
@@ -22,8 +24,10 @@ def login():
     if request.method == 'POST':
         if request.form['login_key'] != login_key:
             return "Not valid"
+
         state_token = generate_state_token()
         session['state_token'] = state_token
+
         auth_url = generate_mondo_auth_url(
             client_id=client_id,
             redirect_uri=redirect_uri,
@@ -58,16 +62,38 @@ def oauth():
     add_accounts_to_db(db.session, access)
 
     client = MondoClient(access.access_token)
-
     create_webhook(client.default_account)
+    update_old_transactions_with_journeys(client.default_account)
 
     return "Success!!"
 
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    app.logger.info(request.json)
+    tran = request.json
+    app.logger.info.tran(tran)
+    if is_tfl(tran):
+        client = client_from_account_id(tran.data.account_id)
+        app.logger.info(client)
     return json.dumps({'success': True})
+
+
+def client_from_account_id(account_id):
+    account = db.session.query(MondoAccount).filter_by(account_id=account_id).one()
+    try:
+        return MondoClient(account.token.access_token)
+    except MondoApiException:
+        new_access = refresh_access_token(
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token=account.token.refresh_token)
+
+        account.token.access_token = new_access.access_token
+        account.token.refresh_token = new_access.refresh_token
+        account.token.expires_in = datetime.now() + timedelta(seconds=new_access.expires_in)
+        db.session.commit()
+
+        return MondoClient(new_access.access_token)
 
 
 def add_accounts_to_db(session, access):
@@ -76,8 +102,7 @@ def add_accounts_to_db(session, access):
     token = MondoToken(
         access_token=access.access_token,
         refresh_token=access.refresh_token,
-        expires_in=datetime.datetime.now()
-        + datetime.timedelta(seconds=access.expires_in))
+        expires_in=datetime.now() + timedelta(seconds=access.expires_in))
 
     for account in accounts:
         db_account, _ = get_or_create(session, MondoAccount,
@@ -94,10 +119,3 @@ def create_webhook(account):
     if len([x for x in webhooks if x.url != webhook_uri]) == 0:
         app.logger.info("Creating webhook for {}".format(account.description))
         account.register_webhook(webhook_uri)
-
-
-def is_tfl(transaction):
-    with suppress(AttributeError):
-        if transaction.merchant.group_id == 'grp_000092JYbUJtEgP9xND1Iv':
-            return True
-    return False

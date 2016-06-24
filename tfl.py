@@ -3,7 +3,6 @@ from lxml import html
 from models import Payment, Journey
 from util import text_at_xpath, first, text_to_cost
 from datetime import datetime
-from collections import OrderedDict
 
 
 class TflDataAccess():
@@ -78,7 +77,7 @@ class TflDataAccess():
             payments = (self._div_to_payment(div) for div in statement_divs)
             return ((p.date, p) for p in payments)
 
-        payments_dict = OrderedDict()
+        payments_dict = {}
         for period in periods:
             payments = payments_from_statements(create_payload(period))
             payments_dict.update(payments)
