@@ -2,12 +2,16 @@ from os import environ
 from flask import Flask
 import logging
 from flask_sqlalchemy import SQLAlchemy
+from rq import Queue
+from worker import conn
 
 app = Flask(__name__)
 
 app.config.from_object('config.Config')
 
 db = SQLAlchemy(app)
+
+q = Queue(connection=conn)
 
 client_id = environ['MONDO_CLIENT_ID']
 client_secret = environ['MONDO_CLIENT_SECRET']

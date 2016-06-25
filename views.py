@@ -1,17 +1,15 @@
 from datetime import datetime, timedelta
 from flask_app import (app, login_key, redirect_uri, client_id, client_secret,
-                       webhook_uri, db)
+                       webhook_uri, db, q)
 from flask import request, session, redirect
 import json
 from mondo import MondoClient
-from mondo.exceptions import MondoApiException
 from mondo.authorization import (generate_state_token,
                                  generate_mondo_auth_url,
-                                 exchange_authorization_code_for_access_token,
-                                 refresh_access_token)
+                                 exchange_authorization_code_for_access_token)
 from db_models import MondoAccount, MondoToken
 from sqlalchemy_util import get_or_create
-from matcher import is_tfl, update_old_transactions_with_journeys
+from matcher import is_tfl, update_old_transactions_with_journeys, client_from_account_id
 
 
 @app.route('/')
@@ -63,7 +61,7 @@ def oauth():
 
     client = MondoClient(access.access_token)
     create_webhook(client.default_account)
-    update_old_transactions_with_journeys(client.default_account)
+    q.enqueue(update_old_transactions_with_journeys, client.default_account.id)
 
     return "Success!!"
 
@@ -76,24 +74,6 @@ def webhook():
         client = client_from_account_id(tran.data.account_id)
         app.logger.info(client)
     return json.dumps({'success': True})
-
-
-def client_from_account_id(account_id):
-    account = db.session.query(MondoAccount).filter_by(account_id=account_id).one()
-    try:
-        return MondoClient(account.token.access_token)
-    except MondoApiException:
-        new_access = refresh_access_token(
-            client_id=client_id,
-            client_secret=client_secret,
-            refresh_token=account.token.refresh_token)
-
-        account.token.access_token = new_access.access_token
-        account.token.refresh_token = new_access.refresh_token
-        account.token.expires_in = datetime.now() + timedelta(seconds=new_access.expires_in)
-        db.session.commit()
-
-        return MondoClient(new_access.access_token)
 
 
 def add_accounts_to_db(session, access):
