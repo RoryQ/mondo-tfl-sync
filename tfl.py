@@ -40,7 +40,50 @@ class TflDataAccess():
 
         return incomplete_journey is not None
 
+    def recent_payments(self):
+        _, filter_token = self._get_statements()
+
+        payload = {
+            "__RequestVerificationToken": filter_token,
+            "SelectedStatementType": "Payments",
+            "SelectedStatementPeriod": "7",
+            "PaymentCardId": self.mondo_card_id
+        }
+
+        return self._payments_from_statements(payload)
+
     def all_payments(self):
+        periods, filter_token = self._get_statements()
+
+        def create_payload(period):
+            return {
+                "__RequestVerificationToken": filter_token,
+                "SelectedStatementType": "Payments",
+                "SelectedStatementPeriod": period,
+                "PaymentCardId": self.mondo_card_id
+            }
+
+        payments_dict = {}
+        for period in periods:
+            payments = self._payments_from_statements(create_payload(period))
+            payments_dict.update(payments)
+
+        return payments_dict
+
+    # Private Methods
+    def _payments_from_statements(self, statements_payload):
+            result = self.session_requests.post(
+                self.STATEMENTS_FILTER_ENDPOINT,
+                data=statements_payload,
+                headers=dict(referer=self.STATEMENTS_ENDPOINT))
+            tree = html.fromstring(result.content)
+            statements_xpath = \
+                '//div[@data-pageobject="travelstatement-paymentsummary"]'
+            statement_divs = tree.xpath(statements_xpath)
+            payments = (self._div_to_payment(div) for div in statement_divs)
+            return ((p.date, p) for p in payments)
+
+    def _get_statements(self):
         # get statements
         result = self.session_requests.get(
             self.STATEMENTS_ENDPOINT,
@@ -57,34 +100,8 @@ class TflDataAccess():
                          '/option/@value[not(.="7")]')
         periods = tree.xpath(periods_xpath)
 
-        def create_payload(period):
-            return {
-                "__RequestVerificationToken": filter_token,
-                "SelectedStatementType": "Payments",
-                "SelectedStatementPeriod": period,
-                "PaymentCardId": self.mondo_card_id
-            }
+        return periods, filter_token
 
-        def payments_from_statements(statements_payload):
-            result = self.session_requests.post(
-                self.STATEMENTS_FILTER_ENDPOINT,
-                data=statements_payload,
-                headers=dict(referer=self.STATEMENTS_ENDPOINT))
-            tree = html.fromstring(result.content)
-            statements_xpath = \
-                '//div[@data-pageobject="travelstatement-paymentsummary"]'
-            statement_divs = tree.xpath(statements_xpath)
-            payments = (self._div_to_payment(div) for div in statement_divs)
-            return ((p.date, p) for p in payments)
-
-        payments_dict = {}
-        for period in periods:
-            payments = payments_from_statements(create_payload(period))
-            payments_dict.update(payments)
-
-        return payments_dict
-
-    # Private Methods
     def _login(self):
         result = self.session_requests.get(self.BASE_URL)
         tree = html.fromstring(result.text)
