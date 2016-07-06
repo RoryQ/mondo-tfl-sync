@@ -91,10 +91,13 @@ def client_from_account_id(account_id):
 
 
 def update_single_transaction(transaction):
+    print(transaction)
+
     if not is_tfl(transaction):
         print('not tfl transaction')
-        print(transaction)
         return
+
+    print('is tfl transaction')
     loop = asyncio.get_event_loop()
     loop.run_until_complete(update_single_transaction_async(transaction))
 
