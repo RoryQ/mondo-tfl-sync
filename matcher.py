@@ -8,22 +8,35 @@ from mondo import MondoClient
 from mondo.exceptions import MondoApiException
 from mondo.authorization import refresh_access_token
 from db_models import MondoAccount
+import asyncio
 
 
 def update_old_transactions_with_journeys(account_id):
-    account = client_from_account_id(account_id).default_account
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(update_old_transactions_with_journeys_async(account_id))
+
+async def update_old_transactions_with_journeys_async(account_id):
+    client = client_from_account_id(account_id)
+    transactions = await client.list_transactions_async(client.default_account.id)
     tfl = TflDataAccess(tfl_username, tfl_password)
     payments = tfl.all_payments()
-    tfl_transactions = [x for x in account.transactions if is_tfl(x)]
+    tfl_transactions = (x for x in transactions if is_tfl(x))
     matches = find_matches(tfl_transactions, payments)
+    update_found_matches(matches)
+    return len(matches)
 
+
+def update_found_matches(matches):
     for (transaction, payment) in (x for x in matches if x[1] is not None and x[0].notes is not None):
-        journey_str = '{}\n{}'.format(payment.date, journey_string(payment.journeys))
-        unit_separator = chr(31)
-        existing_notes = transaction.notes.split(unit_separator)[0]
-        updated_notes = '{}{}\n{}'.format(existing_notes, unit_separator, journey_str)
-        print(updated_notes)
-        transaction.add_metadata({'journey_info': journey_str, 'notes': updated_notes})
+        update_transaction(transaction, payment)
+
+
+def update_transaction(transaction, payment):
+    journey_str = '{}\n{}'.format(payment.date, journey_string(payment.journeys))
+    unit_separator = chr(31)
+    existing_notes = transaction.notes.split(unit_separator)[0]
+    updated_notes = '{}{}\n{}'.format(existing_notes, unit_separator, journey_str)
+    transaction.add_metadata({'journey_info': journey_str, 'notes': updated_notes})
 
 
 def journey_string(journeys):
@@ -37,7 +50,6 @@ def journey_string(journeys):
 
 def find_matches(tfl_transactions, payments):
     sorted_keys = sorted(payments.keys())
-    tfl_transactions.sort(key=lambda t: t.created)
     matches = []
     for tran in tfl_transactions:
         found = None
@@ -76,3 +88,21 @@ def client_from_account_id(account_id):
         db.session.commit()
 
         return MondoClient(new_access.access_token)
+
+
+def update_single_transaction(transaction):
+    if not is_tfl(transaction):
+        print('not tfl transaction')
+        print(transaction)
+        return
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(update_single_transaction_async(transaction))
+
+
+async def update_single_transaction_async(transaction):
+    mondo = client_from_account_id(transaction.data.account_id)
+    transaction = await mondo.get_transaction_async(transaction.data.id)
+    tfl = TflDataAccess(tfl_username, tfl_password)
+    payments = tfl.recent_payments()
+    matches = find_matches([transaction], payments)
+    update_found_matches(matches)

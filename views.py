@@ -9,7 +9,7 @@ from mondo.authorization import (generate_state_token,
                                  exchange_authorization_code_for_access_token)
 from db_models import MondoAccount, MondoToken
 from sqlalchemy_util import get_or_create
-from matcher import is_tfl, update_old_transactions_with_journeys, client_from_account_id
+from matcher import update_old_transactions_with_journeys, update_single_transaction
 
 
 @app.route('/')
@@ -66,13 +66,16 @@ def oauth():
     return "Success!!"
 
 
+@app.route('/update', methods=['POST'])
+def update():
+    q.enqueue(update_old_transactions_with_journeys, request.json['account_id'])
+    return json.dumps({'success': True})
+
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     tran = request.json
-    app.logger.info.tran(tran)
-    if is_tfl(tran):
-        client = client_from_account_id(tran.data.account_id)
-        app.logger.info(client)
+    update_single_transaction(tran)
     return json.dumps({'success': True})
 
 
@@ -90,9 +93,11 @@ def add_accounts_to_db(session, access):
                                       created=account.created,
                                       description=account.description)
         db_account.token = token
-
     session.commit()
 
+    cmd = "DELETE from mondo_tokens t WHERE NOT EXISTS (SELECT token_id FROM mondo_accounts a WHERE t.id = a.token_id);"
+    session.execute(cmd)
+    session.commit()
 
 def create_webhook(account):
     webhooks = account.list_webhooks()
