@@ -99,8 +99,8 @@ def add_accounts_to_db(session, access):
     session.execute(cmd)
     session.commit()
 
+
 def create_webhook(account):
-    webhooks = account.list_webhooks()
-    if len([x for x in webhooks if x.url != webhook_uri]) == 0:
-        app.logger.info("Creating webhook for {}".format(account.description))
+    if webhook_uri not in [x.url for x in account.list_webhooks()]:
+        app.logger.info("Creating webhook {} for {}".format(webhook_uri, account.description))
         account.register_webhook(webhook_uri)
