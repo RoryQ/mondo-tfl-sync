@@ -50,7 +50,10 @@ class TflDataAccess():
             "PaymentCardId": self.mondo_card_id
         }
 
-        return self._payments_from_statements(payload)
+        payments_dict = {}
+        payments_dict.update(self._payments_from_statements(payload))
+
+        return payments_dict
 
     def all_payments(self):
         periods, filter_token = self._get_statements()

@@ -90,21 +90,20 @@ def client_from_account_id(account_id):
         return MondoClient(new_access.access_token)
 
 
-def update_single_transaction(transaction):
-    print(transaction)
+def update_single_transaction(transaction, account_id):
+    print(transaction, flush=True)
 
     if not is_tfl(transaction):
-        print('not tfl transaction')
+        print('not tfl transaction', flush=True)
         return
 
-    print('is tfl transaction')
+    print('is tfl transaction', flush=True)
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(update_single_transaction_async(transaction))
+    loop.run_until_complete(update_single_transaction_async(transaction, account_id))
 
 
-async def update_single_transaction_async(transaction):
-    mondo = client_from_account_id(transaction.data.account_id)
-    transaction = await mondo.get_transaction_async(transaction.data.id)
+async def update_single_transaction_async(transaction, account_id):
+    transaction.__client = client_from_account_id(account_id)
     tfl = TflDataAccess(tfl_username, tfl_password)
     payments = tfl.recent_payments()
     matches = find_matches([transaction], payments)

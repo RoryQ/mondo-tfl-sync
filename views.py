@@ -4,6 +4,7 @@ from flask_app import (app, login_key, redirect_uri, client_id, client_secret,
 from flask import request, session, redirect
 import json
 from mondo import MondoClient
+from mondo.mondo import Transaction
 from mondo.authorization import (generate_state_token,
                                  generate_mondo_auth_url,
                                  exchange_authorization_code_for_access_token)
@@ -74,8 +75,9 @@ def update():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    tran = request.json
-    update_single_transaction(tran)
+    tran = Transaction(**request.json['data'])
+    account_id = request.json['data']['account_id']
+    update_single_transaction(tran, account_id)
     return json.dumps({'success': True})
 
 
