@@ -7,6 +7,7 @@ from flask_app import tfl_username, tfl_password, db, client_id, client_secret
 from mondo import MondoClient
 from mondo.exceptions import MondoApiException
 from mondo.authorization import refresh_access_token
+from mondo.mondo import BasicFeedItem
 from db_models import MondoAccount
 import asyncio
 
@@ -90,7 +91,7 @@ def client_from_account_id(account_id):
         return MondoClient(new_access.access_token)
 
 
-def update_single_transaction(transaction, account_id):
+def update_webhook_transaction(transaction, account_id):
     print(transaction, flush=True)
 
     if not is_tfl(transaction):
@@ -99,12 +100,16 @@ def update_single_transaction(transaction, account_id):
 
     print('is tfl transaction', flush=True)
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(update_single_transaction_async(transaction, account_id))
+    loop.run_until_complete(update_webhook_transaction_async(transaction, account_id))
 
 
-async def update_single_transaction_async(transaction, account_id):
+async def update_webhook_transaction_async(transaction, account_id):
     transaction.__client = client_from_account_id(account_id)
     tfl = TflDataAccess(tfl_username, tfl_password)
     payments = tfl.recent_payments()
     matches = find_matches([transaction], payments)
     update_found_matches(matches)
+    if (tfl.has_incomplete_journeys()):
+        b = BasicFeedItem('You have an incomplete journey', transaction.merchant.logo,
+                          body='Log on to contactless.tfl.gov.uk to reclaim', url='https://contactless.tfl.gov.uk')
+        transaction.__client.create_feed_item(account_id, b)

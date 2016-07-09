@@ -12,7 +12,7 @@ Jinja2==2.8
 lazy-object-proxy==1.2.2
 lxml==3.6.0
 MarkupSafe==0.23
--e git://github.com/RoryQ/mondo-python.git@18fc29a912c6d4ad61330c995bba868db2d63622#egg=mondo_python
+-e git://github.com/RoryQ/mondo-python.git@1fb99c35f08a4f6a0d74bd05fdd4a32378220972#egg=mondo_python
 pep8==1.7.0
 psycopg2==2.6.1
 pylint==1.5.6

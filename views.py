@@ -10,7 +10,7 @@ from mondo.authorization import (generate_state_token,
                                  exchange_authorization_code_for_access_token)
 from db_models import MondoAccount, MondoToken
 from sqlalchemy_util import get_or_create
-from matcher import update_old_transactions_with_journeys, update_single_transaction
+from matcher import update_old_transactions_with_journeys, update_webhook_transaction
 
 
 @app.route('/')
@@ -77,7 +77,7 @@ def update():
 def webhook():
     tran = Transaction(**request.json['data'])
     account_id = request.json['data']['account_id']
-    update_single_transaction(tran, account_id)
+    update_webhook_transaction(tran, account_id)
     return json.dumps({'success': True})
 
 
