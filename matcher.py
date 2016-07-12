@@ -92,12 +92,11 @@ def client_from_account_id(account_id):
 
 
 def update_webhook_transaction(transaction, account_id):
-    print(transaction, flush=True)
 
     if not is_tfl(transaction):
-        print('not tfl transaction', flush=True)
         return
 
+    print(transaction, flush=True)
     print('is tfl transaction', flush=True)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(update_webhook_transaction_async(transaction, account_id))
@@ -109,6 +108,7 @@ async def update_webhook_transaction_async(transaction, account_id):
     payments = tfl.recent_payments()
     matches = find_matches([transaction], payments)
     update_found_matches(matches)
+    print(matches, flush=True)
     if (tfl.has_incomplete_journeys()):
         b = BasicFeedItem('You have an incomplete journey', transaction.merchant.logo,
                           body='Log on to contactless.tfl.gov.uk to reclaim', url='https://contactless.tfl.gov.uk')
