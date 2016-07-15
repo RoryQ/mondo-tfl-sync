@@ -76,8 +76,11 @@ def is_tfl(transaction):
 def client_from_account_id(account_id):
     account = db.session.query(MondoAccount).filter_by(account_id=account_id).one()
     try:
-        return MondoClient(account.token.access_token)
+        client = MondoClient(account.token.access_token)
+        client.whoami()
+        return client
     except MondoApiException:
+        print('refreshing access token', flush=True)
         new_access = refresh_access_token(
             client_id=client_id,
             client_secret=client_secret,

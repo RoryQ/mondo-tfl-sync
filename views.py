@@ -75,6 +75,7 @@ def update():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
+    print(request.json, flush=True)
     tran = Transaction(**request.json['data'])
     account_id = request.json['data']['account_id']
     update_webhook_transaction(tran, account_id)
